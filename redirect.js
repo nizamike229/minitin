@@ -85,7 +85,6 @@ document.addEventListener('DOMContentLoaded', function() {
     `;
     document.head.appendChild(styles);
 
-    // Создаем модальное окно
     const modal = document.createElement('div');
     modal.className = 'modal-overlay';
     modal.innerHTML = `
@@ -100,16 +99,23 @@ document.addEventListener('DOMContentLoaded', function() {
     `;
     document.body.appendChild(modal);
 
-    // Функция открытия модального окна
-    function openModal() {
+    function openModal(url = mainPageUrl) {
         document.body.classList.add('modal-open');
         modal.style.display = 'block';
         const iframe = modal.querySelector('iframe');
-        iframe.src = mainPageUrl;
+        iframe.src = url;
         
-        // Добавляем обработчик для перехвата кликов в iframe
+        // Проверяем, является ли URL одним из специальных URL для отзывов или фото
+        const isSpecialUrl = url === 'https://minternational.ru/reg_otzyvy' || 
+                            url === 'https://minternational.ru/reg_foto';
+        
         iframe.onload = function() {
             try {
+                // Если это специальный URL, не блокируем взаимодействие с iframe
+                if (isSpecialUrl) {
+                    return; // Выходим из функции, не добавляя блокировки
+                }
+                
                 const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
                 const iframeWin = iframe.contentWindow;
 
@@ -183,10 +189,8 @@ document.addEventListener('DOMContentLoaded', function() {
         modal.querySelector('iframe').src = '';
     }
 
-    // Обработчик для кнопки "Назад"
     modal.querySelector('.modal-back').addEventListener('click', closeModal);
 
-    // Обработчик для ссылок
     document.body.addEventListener('click', function(e) {
         const link = e.target.closest('a');
         if (!link) return;
@@ -194,14 +198,25 @@ document.addEventListener('DOMContentLoaded', function() {
         const href = link.getAttribute('href');
         const text = link.textContent.trim().toLowerCase();
         
-        // Проверяем на главную страницу
+        // Проверяем специальные URL для отзывов и фото
+        if (href === 'https://minternational.ru/reg_otzyvy' || 
+            href === 'https://minternational.ru/reg_foto' ||
+            href === '@https://minternational.ru/reg_otzyvy' || 
+            href === '@https://minternational.ru/reg_foto') {
+            
+            e.preventDefault();
+            // Удаляем символ @ если он присутствует
+            const cleanUrl = href.startsWith('@') ? href.substring(1) : href;
+            openModal(cleanUrl);
+            return;
+        }
+        
         if (text === 'главная' || href === mainPageUrl) {
             e.preventDefault();
             openModal();
             return;
         }
         
-        // Если модалка закрыта - все переходы ведут на WhatsApp
         if (modal.style.display !== 'block') {
             e.preventDefault();
             window.location.href = whatsappUrl;
